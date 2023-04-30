@@ -1,0 +1,53 @@
+﻿@page "/"
+
+@using MediatR;
+@using MediatR.Courier;
+@using Communication.Domain.Notification;
+@using Communication.Domain.Query;
+
+@inject IMediator _mediator;
+@inject ICourier _courier;
+
+<PageTitle>Index</PageTitle>
+
+<h1>MediatR test</h1>
+
+@if(!Messages.Any())
+{
+    <div>No messages yet !</div>
+} else
+{
+    <ul>
+        @foreach(var message in Messages)
+        {
+            <li>@message</li>
+        }
+    </ul>
+}
+
+
+
+@code {
+    private List<string> Messages = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        _courier.SubscribeWeak<SomethingHappenedNotification>(SomethingHappenedNotificationWithCourier);
+
+        var query = new AwesomeQuery()
+            {
+                QueryId = Random.Shared.Next(0, 1000)
+            };
+
+        Messages.Add($"{{Request}} [{query.QueryId}] Prepare call MediatR");
+
+        var res = await _mediator.Send(query, CancellationToken.None);
+
+        Messages.Add($"{{Request}} [{res.SourceId}] MediatR response received : RequestId = {res.Id} / Success = {res.IsSuccess}");
+    }
+
+    public void SomethingHappenedNotificationWithCourier(SomethingHappenedNotification notification, CancellationToken cancellationToken)
+    {
+        Messages.Add($"{{Notification}} {notification.Message} console app Courier");
+    }
+}
